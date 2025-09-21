@@ -109,6 +109,7 @@ jobs:
         
     - name: Update kubeconfig for EKS cluster
       run: |
+        aws sts get-caller-identity --query "UserId" --output text
         aws eks update-kubeconfig \
           --region ${{ env.AWS_REGION }} \
           --name ${{ env.AWS_ENVIRONMENT }}-eks-cluster
