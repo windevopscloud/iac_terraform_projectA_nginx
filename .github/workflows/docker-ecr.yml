@@ -3,15 +3,15 @@ name: Build and Push to ECR
 on:
   push:
     branches: [ main ]
-    paths:
-      - 'dockerfile'
-      - '**/*.html'
-      - '**/*.js'
-      - '**/*.css'
-      - '**/*.json'
-      - '**/requirements.txt'
-      - '**/package.json'
-      - '.github/workflows/**'
+    #paths:
+    #  - 'dockerfile'
+    #  - '**/*.html'
+    #  - '**/*.js'
+    #  - '**/*.css'
+    #  - '**/*.json'
+    #  - '**/requirements.txt'
+    #  - '**/package.json'
+    #  - '.github/workflows/**'
 
 env:
   AWS_REGION: us-east-1
@@ -45,7 +45,7 @@ jobs:
         echo "Changed files:"
         echo "$CHANGED_FILES"
         
-        if echo "$CHANGED_FILES" | grep -i -E '(dockerfile|\.html$|\.js$|\.css$|\.json$|requirements\.txt|package\.json)' >/dev/null; then
+        if [ -z "$CHANGED_FILES" ]; then
           echo "CHANGES_DETECTED=true" >> $GITHUB_OUTPUT
           echo "📦 Build required: Dockerfile or dependencies changed"
         else
