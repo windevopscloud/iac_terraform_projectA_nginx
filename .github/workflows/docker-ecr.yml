@@ -106,16 +106,21 @@ jobs:
       with:
         aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        
+        aws-region: ${{ env.AWS_REGION }}
+        mask-aws-account-id: true
+
+    - name: Verify AWS CLI
+      run: aws sts get-caller-identity
+     
     - name: Update kubeconfig for EKS cluster
       run: |
-        aws sts get-caller-identity --query "UserId" --output text
         aws eks update-kubeconfig \
-          --region ${{ env.AWS_REGION }} \
-          --name ${{ env.AWS_ENVIRONMENT }}-eks-cluster
+        --region ${{ env.AWS_REGION }} \
+        --name ${{ env.AWS_ENVIRONMENT }}-eks-cluster
 
     - name: Verify cluster access
       run: |
+        aws sts get-caller-identity
         kubectl cluster-info
 
     - name: Deploy using existing manifests
