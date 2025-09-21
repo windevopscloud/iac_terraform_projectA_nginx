@@ -33,8 +33,19 @@ jobs:
     - name: Detect changes
       id: detect-changes
       run: |
-        # Check if Dockerfile or related files changed
-        if git diff --name-only HEAD^ HEAD | grep -E '(Dockerfile|\.html$|\.js$|\.css$|\.json$|requirements\.txt|package\.json)'; then
+        # For push events, use the previous commit and current commit
+        PREV_SHA=${{ github.event.before }}
+        CURRENT_SHA=${{ github.sha }}
+        
+        # Fetch both commits to ensure they're available
+        git fetch origin $PREV_SHA || true
+        git fetch origin $CURRENT_SHA || true
+
+        CHANGED_FILES=$(git diff --name-only $PREV_SHA $CURRENT_SHA || echo "")
+        echo "Changed files:"
+        echo "$CHANGED_FILES"
+        
+        if echo "$CHANGED_FILES" | grep -i -E '(dockerfile|\.html$|\.js$|\.css$|\.json$|requirements\.txt|package\.json)' >/dev/null; then
           echo "CHANGES_DETECTED=true" >> $GITHUB_OUTPUT
           echo "📦 Build required: Dockerfile or dependencies changed"
         else
