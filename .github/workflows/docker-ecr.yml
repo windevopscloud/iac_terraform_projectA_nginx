@@ -50,6 +50,7 @@ jobs:
         aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         aws-region: ${{ env.AWS_REGION }}
+        mask-aws-account-id: true
 
     - name: Get AWS Account ID
       id: get-account-id
@@ -57,7 +58,7 @@ jobs:
       run: |
         AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query "Account" --output text)
         echo "aws_account_id=$AWS_ACCOUNT_ID" >> $GITHUB_OUTPUT
-        echo "AWS_ACCOUNT_ID=${AWS_ACCOUNT_ID}" >> $GITHUB_ENV
+        echo "AWS_ACCOUNT_ID=$AWS_ACCOUNT_ID" >> $GITHUB_ENV
 
     - name: Login to Amazon ECR
       if: steps.detect-changes.outputs.CHANGES_DETECTED == 'true'
@@ -111,6 +112,24 @@ jobs:
 
     - name: Verify AWS CLI
       run: aws sts get-caller-identity
+
+    #- name: Set AWS Account ID from build job
+    #  run: |
+    #    echo "AWS_ACCOUNT_ID=${{ needs.build-and-push.outputs.aws_account_id }}" >> $GITHUB_ENV
+    #    echo "Using AWS Account ID from build job: ${{ needs.build-and-push.outputs.aws_account_id }}"
+
+    - name: Get AWS Account ID
+      id: get-account-id
+      run: |
+        AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query "Account" --output text)
+        echo "AWS_ACCOUNT_ID=${AWS_ACCOUNT_ID}" >> $GITHUB_ENV
+
+    - name: Assume EKS Tools Role
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        role-to-assume: arn:aws:iam::${{ env.AWS_ACCOUNT_ID }}:role/eks-tools-${{ env.AWS_ENVIRONMENT }}-role
+        role-session-name: github-runner-${{ github.run_id }}
+        aws-region: ${{ env.AWS_REGION }}
      
     - name: Update kubeconfig for EKS cluster
       run: |
@@ -120,7 +139,6 @@ jobs:
 
     - name: Verify cluster access
       run: |
-        aws sts get-caller-identity
         kubectl cluster-info
 
     - name: Deploy using existing manifests
