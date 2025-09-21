@@ -7,9 +7,11 @@ on:
 env:
   AWS_REGION: us-east-1
   ECR_REPOSITORY: test1
+  AWS_ENVIRONMENT: poc
+  #EKS_CLUSTER_NAME: poc-eks-cluster
 
 jobs:
-  deploy:
+  build-and-push:
     runs-on: ubuntu-latest
     
     steps:
@@ -51,3 +53,37 @@ jobs:
       run: |
         echo "✅ Image pushed to ECR successfully!"
         echo "📦 ECR Repository: ${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}"
+    
+  deploy-to-eks:
+    runs-on: ubuntu-latest
+    needs: build-and-push
+    environment: production
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        
+    - name: Update kubeconfig for EKS cluster
+      run: |
+        aws eks update-kubeconfig \
+          --region ${{ env.AWS_REGION }} \
+          --name ${{ env.AWS_ENVIRONMENT }}-eks-cluster
+
+    - name: Verify cluster access
+      run: |
+        kubectl cluster-info
+        kubectl get nodes
+    - name: Deploy using existing manifests
+      run: |
+        # Replace image placeholder in deployment.yaml
+        sed -i "s|<ACCOUNT_ID>|${{ steps.aws-creds.outputs.aws-account-id }}|g" deployment.yaml
+        sed -i "s|<REGION>|${{ env.AWS_REGION }}|g" deployment.yaml
+        
+        kubectl apply -f deployment.yaml
+        kubectl apply -f service.yaml
