@@ -23,11 +23,16 @@ jobs:
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         aws-region: ${{ env.AWS_REGION }}
 
-    - name: Login to Amazon ECR
+    - name: Get AWS Account ID
+      id: get-account-id
       run: |
         AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query "Account" --output text)
+        echo "AWS_ACCOUNT_ID=${AWS_ACCOUNT_ID}" >> $GITHUB_ENV
+
+    - name: Login to Amazon ECR
+      run: |
         aws ecr get-login-password --region ${{ env.AWS_REGION }} | \
-        docker login --username AWS --password-stdin ${AWS_ACCOUNT_ID}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com
+        docker login --username AWS --password-stdin ${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com
 
     - name: Build Docker image
       run: |
@@ -36,13 +41,13 @@ jobs:
     - name: Tag Docker image
       run: |
         docker tag ${{ env.ECR_REPOSITORY }}:latest \
-       ${AWS_ACCOUNT_ID}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}:latest
+        ${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}:latest
 
     - name: Push to ECR
       run: |
-        docker push ${AWS_ACCOUNT_ID}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}:latest
+        docker push ${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}:latest
 
     - name: Success message
       run: |
         echo "✅ Image pushed to ECR successfully!"
-        echo "📦 ECR Repository:${AWS_ACCOUNT_ID}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}"
+        echo "📦 ECR Repository: ${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}"
