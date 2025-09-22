@@ -136,11 +136,15 @@ jobs:
         AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query "Account" --output text)
         echo "AWS_ACCOUNT_ID=${AWS_ACCOUNT_ID}" >> $GITHUB_ENV
 
-    - name: Assume EKS Tools Role
+    - name: Configure AWS credentials (with IAM user)
       uses: aws-actions/configure-aws-credentials@v4
       with:
-        role-to-assume: arn:aws:iam::${{ env.AWS_ACCOUNT_ID }}:role/eks-tools-${{ env.AWS_ENVIRONMENT }}-role
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         aws-region: ${{ env.AWS_REGION }}
+        role-to-assume: arn:aws:iam::${{ env.AWS_ACCOUNT_ID }}:role/eks-tools-${{ env.AWS_ENVIRONMENT }}-role
+        role-session-name: github-actions
+        mask-aws-account-id: true
      
     - name: Update kubeconfig for EKS cluster
       run: |
