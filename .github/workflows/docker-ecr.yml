@@ -17,11 +17,11 @@ env:
   AWS_REGION: us-east-1
   ECR_REPOSITORY: test1
   AWS_ENVIRONMENT: poc
-  #EKS_CLUSTER_NAME: poc-eks-cluster
 
 jobs:
   build-and-push:
-    runs-on: ubuntu-latest
+    runs-on: runner_projectA
+    environment: dev
     outputs:
       aws_account_id: ${{ steps.get-account-id.outputs.aws_account_id }}
       image_built: ${{ steps.detect-changes.outputs.CHANGES_DETECTED == 'true' }}
@@ -106,7 +106,8 @@ jobs:
         echo "⏭️ Skipping build: No changes to Dockerfile or dependencies"
     
   deploy-to-eks:
-    runs-on: ubuntu-latest
+    runs-on: runner_projectA
+    environment: dev
     needs: build-and-push
     if: needs.build-and-push.result == 'success' || needs.build-and-push.result == 'skipped'
        
@@ -137,23 +138,6 @@ jobs:
       run: |
         AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query "Account" --output text)
         echo "AWS_ACCOUNT_ID=${AWS_ACCOUNT_ID}" >> $GITHUB_ENV
-
-    - name: Test connectivity to EKS API
-      run: |
-        EKS_ENDPOINT=$(aws eks describe-cluster \
-        --name ${{ env.AWS_ENVIRONMENT }}-eks-cluster \
-        --query "cluster.endpoint" --output text)
-        echo "EKS endpoint: $EKS_ENDPOINT"
-
-        # Extract hostname
-        HOSTNAME=$(echo $EKS_ENDPOINT | sed -E 's#https://([^/]+).*#\1#')
-        echo "Testing TCP 443 to $HOSTNAME"
-        
-        # Install nc if not available
-        sudo apt-get update && sudo apt-get install -y netcat
-        
-        # Test TCP 443
-        nc -vz $HOSTNAME 443
 
     - name: Assume eks-tools role
       run: |
