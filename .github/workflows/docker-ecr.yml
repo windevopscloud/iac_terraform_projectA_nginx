@@ -144,7 +144,7 @@ jobs:
         aws-region: ${{ env.AWS_REGION }}
         role-to-assume: arn:aws:iam::${{ env.AWS_ACCOUNT_ID }}:role/eks-tools-${{ env.AWS_ENVIRONMENT }}-role
         role-session-name: github-actions
-        mask-aws-account-id: true
+        role-skip-session-tagging: true
      
     - name: Update kubeconfig for EKS cluster
       run: |
