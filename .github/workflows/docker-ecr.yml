@@ -138,6 +138,23 @@ jobs:
         AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query "Account" --output text)
         echo "AWS_ACCOUNT_ID=${AWS_ACCOUNT_ID}" >> $GITHUB_ENV
 
+    - name: Test connectivity to EKS API
+      run: |
+        EKS_ENDPOINT=$(aws eks describe-cluster \
+        --name ${{ env.AWS_ENVIRONMENT }}-eks-cluster \
+        --query "cluster.endpoint" --output text)
+        echo "EKS endpoint: $EKS_ENDPOINT"
+
+        # Extract hostname
+        HOSTNAME=$(echo $EKS_ENDPOINT | sed -E 's#https://([^/]+).*#\1#')
+        echo "Testing TCP 443 to $HOSTNAME"
+        
+        # Install nc if not available
+        sudo apt-get update && sudo apt-get install -y netcat
+        
+        # Test TCP 443
+        nc -vz $HOSTNAME 443
+
     - name: Assume eks-tools role
       run: |
         ROLE_ARN="arn:aws:iam::${{ env.AWS_ACCOUNT_ID }}:role/eks-tools-${{ env.AWS_ENVIRONMENT }}-role"
